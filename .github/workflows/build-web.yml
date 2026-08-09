@@ -1,0 +1,64 @@
+name: Build Web
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+  SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+
+jobs:
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build Web app
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
+      - name: Inject Supabase config into index.html
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL (variable) and SUPABASE_PUBLISHABLE_KEY (secret) must be set"
+            exit 1
+          fi
+          out=composeApp/build/dist/wasmJs/productionExecutable/index.html
+          sed -i \
+            -e "s|@@SUPABASE_URL@@|${SUPABASE_URL}|g" \
+            -e "s|@@SUPABASE_ANON_KEY@@|${SUPABASE_ANON_KEY}|g" \
+            "$out"
+          grep -q "@@SUPABASE" "$out" \
+            && { echo "::error::Config placeholders remain in $out" ; exit 1; } \
+            || true
+          node -e "const h=require('fs').readFileSync(process.argv[1],'utf8');const m=h.match(/window.APP_CONFIG\s*=\s*(\{.+?\});/s);if(!m){console.error('APP_CONFIG not found');process.exit(1)}JSON.parse(m[1])" "$out"
+          echo "Supabase config injected and valid."
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: composeApp/build/dist/wasmJs/productionExecutable
+          retention-days: 7

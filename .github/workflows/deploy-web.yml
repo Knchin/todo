@@ -1,0 +1,81 @@
+name: Deploy Web
+
+on:
+  workflow_run:
+    workflows:
+      - "Build Web"
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy-web:
+    name: Deploy Pages
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Download Web artifact from Build Web workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web-dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      # --- GitHub Pages ---
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web-dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Output GitHub Pages URL
+        run: |
+          echo "## Deployed to GitHub Pages: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+
+      # --- Cloudflare Pages ---
+      - name: Ensure Cloudflare Pages project exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if ! npx --yes wrangler@3 pages project list | grep -Eq '(^|[[:space:]])todonotes($|[[:space:]])'; then
+            echo "Pages project 'todonotes' not found; creating it..."
+            npx --yes wrangler@3 pages project create todonotes --production-branch=main
+          else
+            echo "Pages project 'todonotes' already exists."
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@3 pages deploy web-dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
+
+      - name: Output Cloudflare Pages URL
+        run: |
+          echo "## Deployed to Cloudflare Pages: https://${{ vars.CLOUDFLARE_PROJECT_NAME }}.pages.dev" >> $GITHUB_STEP_SUMMARY
