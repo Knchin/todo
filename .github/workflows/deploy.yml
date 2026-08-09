@@ -101,15 +101,22 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL and SUPABASE_ANON_KEY repository variables must be set"
+            exit 1
+          fi
           out=composeApp/build/dist/wasmJs/productionExecutable/index.html
           sed -i \
             -e "s|@@SUPABASE_URL@@|${SUPABASE_URL}|g" \
             -e "s|@@SUPABASE_ANON_KEY@@|${SUPABASE_ANON_KEY}|g" \
             "$out"
-          # Fail loudly if substitution did not happen.
+          # Fail loudly if placeholders remain (vars missing) or the injected
+          # JSON object is malformed.
           grep -q "@@SUPABASE" "$out" \
             && { echo "::error::Config placeholders remain in $out" ; exit 1; } \
             || true
+          node -e "const h=require('fs').readFileSync(process.argv[1],'utf8');const m=h.match(/window.APP_CONFIG\s*=\s*(\{.+?\});/s);if(!m){console.error('APP_CONFIG not found');process.exit(1)}JSON.parse(m[1])" "$out"
+          echo "Supabase config injected and valid."
 
       # --- GitHub Pages ---
       - name: Configure Pages
