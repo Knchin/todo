@@ -180,4 +180,4 @@ jobs:
         run: npx --yes wrangler@3 pages deploy web-dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
 
       - name: Output Cloudflare Pages URL
-        run: echo "## Deployed to Cloudflare Pages: https://todonotes.pages.dev" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Deployed to Cloudflare Pages: https://${{ vars.CLOUDFLARE_PROJECT_NAME }}.pages.dev" >> $GITHUB_STEP_SUMMARY
