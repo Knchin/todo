@@ -22,7 +22,28 @@ port = 54327
 
 [functions]
 enabled = true
-verify_jwt = true
+verify_jwt = false
+
+# All note functions are public endpoints (no Supabase Auth), so JWT
+# verification is disabled. Protected-note authorization is handled inside the
+# functions via NOTE_TOKEN_SECRET-signed tokens, not via Supabase Auth.
+[functions.create-note]
+verify_jwt = false
+
+[functions.list-public-notes]
+verify_jwt = false
+
+[functions.get-note]
+verify_jwt = false
+
+[functions.unlock-note]
+verify_jwt = false
+
+[functions.update-note]
+verify_jwt = false
+
+[functions.delete-note]
+verify_jwt = false
 
 [auth]
 enabled = false
