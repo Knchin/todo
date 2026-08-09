@@ -23,28 +23,26 @@ env:
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
 jobs:
-  # --- Build Stage ---
+  # ==========================================
+  # BUILD STAGE (parallel)
+  # ==========================================
   build-android:
-    name: Build Android (APK)
+    name: "⬜ Build Android"
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Build debug APK
         run: ./gradlew :composeApp:assembleDebug --no-daemon
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -53,29 +51,25 @@ jobs:
           retention-days: 7
 
   build-web:
-    name: Build Web (Wasm)
+    name: "⬜ Build Web"
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Build Web app
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
-
       - name: Inject Supabase config into index.html
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
@@ -95,7 +89,6 @@ jobs:
             || true
           node -e "const h=require('fs').readFileSync(process.argv[1],'utf8');const m=h.match(/window.APP_CONFIG\s*=\s*(\{.+?\});/s);if(!m){console.error('APP_CONFIG not found');process.exit(1)}JSON.parse(m[1])" "$out"
           echo "Supabase config injected and valid."
-
       - name: Upload Web artifact
         uses: actions/upload-artifact@v4
         with:
@@ -104,29 +97,28 @@ jobs:
           retention-days: 7
 
   build-ios:
-    name: Build iOS (Framework)
+    name: "⬜ Build iOS"
     runs-on: macos-latest
     permissions:
       contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Build iOS framework
         run: ./gradlew :shared:linkDebugFrameworkIosArm64 :composeApp:linkDebugFrameworkIosArm64 --no-daemon
 
-  # --- Deploy Stage (only on push to main, not PRs) ---
+  # ==========================================
+  # DEPLOY STAGE (after build succeeds)
+  # ==========================================
   deploy-web:
-    name: Deploy Web (GitHub Pages + Cloudflare Pages)
+    name: "⬜ Deploy Pages"
     needs: [build-web]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
