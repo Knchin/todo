@@ -1,0 +1,28 @@
+# Supabase CLI configuration (supabase start / supabase db push / deploy).
+# Public configuration only. Secrets are supplied via environment variables.
+
+project_id = "notes"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[analytics]
+enabled = true
+port = 54327
+
+[functions]
+enabled = true
+verify_jwt = true
+
+[auth]
+enabled = false
