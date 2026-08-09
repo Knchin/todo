@@ -1,22 +1,38 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
 }
 
+@OptIn(ExperimentalWasmDsl::class)
 kotlin {
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
+    iosArm64()
+    iosSimulatorArm64()
+
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
+
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        moduleName = "todoApp"
         browser {
             commonWebpackConfig {
                 outputFileName = "todoApp.js"
-                devServer {
-                    staticPort = 8081
-                }
             }
         }
         binaries.executable()
@@ -34,7 +50,6 @@ kotlin {
 
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.browser)
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
@@ -42,8 +57,34 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
         }
 
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+        }
+
         wasmJsMain.dependencies {
+            implementation(libs.kotlinx.browser)
             implementation(libs.ktor.client.js)
+        }
+    }
+}
+
+android {
+    namespace = "com.todo.app"
+    compileSdk = 35
+    defaultConfig {
+        applicationId = "com.todo.app"
+        minSdk = 24
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
         }
     }
 }

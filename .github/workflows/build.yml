@@ -6,8 +6,36 @@ on:
       - main
 
 jobs:
-  build:
+  android-web:
+    name: Android + Web
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Android APK
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
+
+      - name: Build Web app
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
+
+  ios:
+    name: iOS
+    runs-on: macos-latest
     permissions:
       contents: read
     steps:
@@ -23,5 +51,5 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build
-        run: ./gradlew build --no-daemon
+      - name: Build iOS framework
+        run: ./gradlew :shared:linkDebugFrameworkIosArm64 :composeApp:linkDebugFrameworkIosArm64 --no-daemon
