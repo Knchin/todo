@@ -103,7 +103,6 @@ private fun EmptyState(onCreateClick: () -> Unit) {
         Text("No public notes yet.", style = MaterialTheme.typography.titleMedium)
         Text("Create the first one.", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onCreateClick) { Text("Create a note") }
     }
 }
 
