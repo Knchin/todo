@@ -3,71 +3,48 @@ package com.todo.shared.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RegisterRequest(
+data class CreateNoteRequest(
     val name: String,
-    val email: String,
-    val password: String,
-)
-
-@Serializable
-data class LoginRequest(
-    val email: String,
-    val password: String,
-)
-
-@Serializable
-data class AuthResponse(
-    val user: UserDto,
-)
-
-@Serializable
-data class CreateListRequest(
-    val name: String,
-)
-
-@Serializable
-data class UpdateListRequest(
-    val name: String,
-)
-
-@Serializable
-data class CreateTodoRequest(
-    val title: String,
     val description: String = "",
-    val dueDate: Long? = null,
-    val assignedTo: String? = null,
-)
-
-/**
- * Partial update for a todo. `null` fields are left unchanged.
- * `completed` uses a Boolean? because false is a meaningful value.
- * Use the explicit `clear*` flags to set a nullable field back to null.
- */
-@Serializable
-data class UpdateTodoRequest(
-    val title: String? = null,
-    val description: String? = null,
-    val completed: Boolean? = null,
-    val assignedTo: String? = null,
-    val clearAssignedTo: Boolean = false,
-    val dueDate: Long? = null,
-    val clearDueDate: Boolean = false,
+    val content: String,
+    val type: NoteType,
+    val passcode: String? = null,
 )
 
 @Serializable
-data class AddMemberRequest(
-    val email: String,
-    val role: ListRole? = null,
+data class CreateNoteResponse(
+    val note: Note,
+    val publicUrl: String,
 )
 
 @Serializable
-data class UpdateMemberRoleRequest(
-    val role: ListRole,
+data class UnlockRequest(
+    val publicId: String,
+    val passcode: String,
 )
 
 @Serializable
-data class ReorderTodosRequest(
-    val orderedIds: List<String>,
+data class UnlockResponse(
+    val note: Note,
+    val token: String,
+)
+
+@Serializable
+data class UpdateNoteRequest(
+    val publicId: String,
+    val name: String,
+    val description: String,
+    val content: String,
+)
+
+@Serializable
+data class DeleteNoteRequest(
+    val publicId: String,
+)
+
+@Serializable
+data class PublicNotesResponse(
+    val notes: List<NoteSummary>,
 )
 
 @Serializable
@@ -81,14 +58,14 @@ data class ApiErrorEnvelope(
     val error: ApiErrorBody,
 )
 
-/** Stable machine-readable error codes shared by server and clients. */
+/** Stable machine-readable error codes shared by Edge Functions and the client. */
 object ErrorCodes {
-    const val VALIDATION = "VALIDATION_ERROR"
-    const val UNAUTHORIZED = "UNAUTHORIZED"
-    const val FORBIDDEN = "FORBIDDEN"
     const val NOT_FOUND = "NOT_FOUND"
-    const val CONFLICT = "CONFLICT"
-    const val INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
+    const val INVALID_REQUEST = "INVALID_REQUEST"
+    const val INVALID_PASSCODE = "INVALID_PASSCODE"
+    const val FORBIDDEN = "FORBIDDEN"
     const val RATE_LIMITED = "RATE_LIMITED"
     const val INTERNAL = "INTERNAL_ERROR"
+    const val OVER_SIZE = "CONTENT_TOO_LARGE"
+    const val CONFLICT = "CONFLICT"
 }
