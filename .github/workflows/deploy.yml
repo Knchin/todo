@@ -93,16 +93,16 @@ jobs:
       - name: Build Web app (PWA)
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
 
       - name: Inject Supabase config into index.html
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "::error::SUPABASE_URL and SUPABASE_ANON_KEY repository variables must be set"
+            echo "::error::SUPABASE_URL (variable) and SUPABASE_PUBLISHABLE_KEY (secret) must be set"
             exit 1
           fi
           out=composeApp/build/dist/wasmJs/productionExecutable/index.html
