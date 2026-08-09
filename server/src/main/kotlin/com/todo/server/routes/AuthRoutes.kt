@@ -28,24 +28,26 @@ fun Route.authRoutes(
         post("/register") {
             if (!rateLimiter.tryAcquire(call.rateLimitKey())) throw rateLimited()
             val request = call.receive<RegisterRequest>()
-            val user = authService.register(request)
+            val result = authService.register(request)
             call.response.cookies.append(
-                SessionCookie.forToken(authService.tokenFor(user), config.cookieSecure, config.sessionTtl),
+                SessionCookie.forToken(result.token, config.cookieSecure, config.sessionTtl),
             )
-            call.respond(HttpStatusCode.Created, AuthResponse(user.toDto()))
+            call.respond(HttpStatusCode.Created, AuthResponse(result.user.toDto()))
         }
 
         post("/login") {
             if (!rateLimiter.tryAcquire(call.rateLimitKey())) throw rateLimited()
             val request = call.receive<LoginRequest>()
-            val user = authService.login(request)
+            val result = authService.login(request)
             call.response.cookies.append(
-                SessionCookie.forToken(authService.tokenFor(user), config.cookieSecure, config.sessionTtl),
+                SessionCookie.forToken(result.token, config.cookieSecure, config.sessionTtl),
             )
-            call.respond(HttpStatusCode.OK, AuthResponse(user.toDto()))
+            call.respond(HttpStatusCode.OK, AuthResponse(result.user.toDto()))
         }
 
         post("/logout") {
+            val token = call.request.cookies[SessionCookie.NAME].orEmpty()
+            authService.logout(token)
             call.response.cookies.append(SessionCookie.clear(config.cookieSecure))
             call.respond(HttpStatusCode.NoContent)
         }

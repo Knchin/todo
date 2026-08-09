@@ -6,7 +6,7 @@ import com.todo.server.http.conflict
 import com.todo.server.http.forbidden
 import com.todo.server.http.notFound
 import com.todo.server.http.validationError
-import com.todo.server.websocket.RealtimeHub
+import com.todo.server.websocket.Realtime
 import com.todo.shared.model.AddMemberRequest
 import com.todo.shared.model.ListRole
 import com.todo.shared.model.MemberAdded
@@ -19,7 +19,7 @@ import com.todo.shared.validation.Validation
 class MemberService(
     private val lists: TodoListRepository,
     private val users: UserRepository,
-    private val hub: RealtimeHub,
+    private val hub: Realtime,
 ) {
     suspend fun members(userId: String, listId: String): List<MemberDto> {
         requireMember(userId, listId)

@@ -1,6 +1,6 @@
 package com.todo.server.websocket
 
-import com.todo.server.auth.JwtService
+import com.todo.server.auth.AuthProvider
 import com.todo.server.auth.SessionCookie
 import com.todo.server.database.TodoListRepository
 import com.todo.shared.model.ClientMessage
@@ -22,13 +22,13 @@ import kotlinx.serialization.json.Json
  * lists it is a member of.
  */
 fun Route.realtimeRoutes(
-    jwt: JwtService,
+    auth: AuthProvider,
     lists: TodoListRepository,
-    hub: RealtimeHub,
+    hub: Realtime,
     json: Json,
 ) {
     webSocket("/ws") {
-        val userId = call.request.cookies[SessionCookie.NAME]?.let { jwt.verifyToken(it) }
+        val userId = call.request.cookies[SessionCookie.NAME]?.let { auth.verifyToken(it) }
         if (userId == null) {
             send(Frame.Text(error(ErrorCodes.UNAUTHORIZED, "Authentication required.", json)))
             close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))

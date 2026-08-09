@@ -13,7 +13,7 @@ object DatabaseFactory {
 
     fun createDataSource(config: AppConfig): DataSource {
         val hikariConfig = HikariConfig().apply {
-            jdbcUrl = config.dbUrl
+            jdbcUrl = withSsl(config)
             username = config.dbUser
             password = config.dbPassword
             maximumPoolSize = config.dbMaxPoolSize
@@ -22,6 +22,15 @@ object DatabaseFactory {
             validate()
         }
         return HikariDataSource(hikariConfig)
+    }
+
+    /** Appends `sslmode=require` for Supabase-hosted Postgres when enabled. */
+    private fun withSsl(config: AppConfig): String {
+        if (!config.dbSsl) return config.dbUrl
+        val base = config.dbUrl.trimEnd('&')
+        val separator = if ('?' in base) '&' else '?'
+        val sslMode = if (config.dbUrl.contains("sslmode=")) "" else "$separator" + "sslmode=require"
+        return base + sslMode
     }
 
     fun migrate(dataSource: DataSource): Unit {

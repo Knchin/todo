@@ -7,26 +7,25 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Tracks WebSocket sessions per todo list and fans out strongly-typed events
- * to every subscriber of that list. Send failures are swallowed and cleaned
- * up on disconnect.
+ * In-process fan-out: broadcasts events to every `/ws` session subscribed to
+ * the affected list. Used for local dev and the embedded-Postgres test suite.
  */
-class RealtimeHub(private val json: Json) {
+class LocalRealtime(private val json: Json) : Realtime {
     private val listSubscribers = ConcurrentHashMap<String, MutableSet<DefaultWebSocketServerSession>>()
 
-    fun subscribe(session: DefaultWebSocketServerSession, listId: String) {
+    override fun subscribe(session: DefaultWebSocketServerSession, listId: String) {
         listSubscribers.computeIfAbsent(listId) { ConcurrentHashMap.newKeySet() }.add(session)
     }
 
-    fun unsubscribe(session: DefaultWebSocketServerSession, listId: String) {
+    override fun unsubscribe(session: DefaultWebSocketServerSession, listId: String) {
         listSubscribers[listId]?.remove(session)
     }
 
-    fun removeSession(session: DefaultWebSocketServerSession) {
+    override fun removeSession(session: DefaultWebSocketServerSession) {
         listSubscribers.values.forEach { it.remove(session) }
     }
 
-    suspend fun broadcast(listId: String, event: RealtimeEvent) {
+    override suspend fun broadcast(listId: String, event: RealtimeEvent) {
         val sessions = listSubscribers[listId] ?: return
         if (sessions.isEmpty()) return
         val payload = json.encodeToString(RealtimeEvent.serializer(), event)
@@ -38,4 +37,6 @@ class RealtimeHub(private val json: Json) {
             }
         }
     }
+
+    override fun close() = Unit
 }

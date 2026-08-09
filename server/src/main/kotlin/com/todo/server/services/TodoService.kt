@@ -4,7 +4,7 @@ import com.todo.server.database.TodoListRepository
 import com.todo.server.database.TodoRepository
 import com.todo.server.http.notFound
 import com.todo.server.http.validationError
-import com.todo.server.websocket.RealtimeHub
+import com.todo.server.websocket.Realtime
 import com.todo.shared.model.CreateTodoRequest
 import com.todo.shared.model.ReorderTodosRequest
 import com.todo.shared.model.TodoCreated
@@ -20,7 +20,7 @@ class TodoService(
     private val todos: TodoRepository,
     private val lists: TodoListRepository,
     private val listService: ListService,
-    private val hub: RealtimeHub,
+    private val hub: Realtime,
 ) {
     suspend fun listForList(userId: String, listId: String): List<TodoDto> {
         listService.ensureMember(userId, listId)

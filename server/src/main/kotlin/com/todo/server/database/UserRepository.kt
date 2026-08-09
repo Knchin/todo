@@ -54,4 +54,28 @@ class UserRepository {
         }
         Users.selectAll().where { Users.id eq id }.firstOrNull()!!.toUserRecord()
     }
+
+    /**
+     * Returns the user for the given id, creating a row if it does not exist.
+     * Used to mirror Supabase Auth users (keyed by the Supabase user UUID) into
+     * the local users table without storing a password hash (Supabase owns it).
+     */
+    suspend fun ensureExists(id: String, name: String, email: String): UserRecord = withDb {
+        val uuid = Uuid.parse(id)
+        val existing = Users.selectAll().where { Users.id eq uuid }.firstOrNull()
+        if (existing != null) {
+            existing.toUserRecord()
+        } else {
+            val now = System.currentTimeMillis()
+            Users.insert {
+                it[Users.id] = uuid
+                it[Users.name] = name
+                it[Users.email] = email.trim().lowercase()
+                it[Users.passwordHash] = ""
+                it[Users.createdAt] = now
+                it[Users.updatedAt] = now
+            }
+            Users.selectAll().where { Users.id eq uuid }.firstOrNull()!!.toUserRecord()
+        }
+    }
 }

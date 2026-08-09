@@ -1,9 +1,12 @@
 package com.todo.server
 
+import com.todo.server.auth.AuthProvider
 import com.todo.server.auth.JwtService
+import com.todo.server.auth.LocalAuthProvider
 import com.todo.server.auth.PasswordHasher
 import com.todo.server.auth.RateLimiter
 import com.todo.server.auth.SessionCookie
+import com.todo.server.auth.SupabaseAuthProvider
 import com.todo.server.auth.UserPrincipal
 import com.todo.server.config.AppConfig
 import com.todo.server.database.DatabaseFactory
@@ -19,11 +22,19 @@ import com.todo.server.services.AuthService
 import com.todo.server.services.ListService
 import com.todo.server.services.MemberService
 import com.todo.server.services.TodoService
-import com.todo.server.websocket.RealtimeHub
+import com.todo.server.supabase.SupabaseAuthClient
+import com.todo.server.supabase.SupabaseJwtVerifier
+import com.todo.server.supabase.SupabaseRealtime
+import com.todo.server.websocket.LocalRealtime
+import com.todo.server.websocket.Realtime
+import com.todo.server.websocket.SupabaseRealtimeProvider
 import com.todo.server.websocket.realtimeRoutes
 import com.todo.shared.model.ApiErrorBody
 import com.todo.shared.model.ApiErrorEnvelope
 import com.todo.shared.model.ErrorCodes
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -59,11 +70,29 @@ fun Application.module(config: AppConfig) {
     val listRepository = TodoListRepository()
     val todoRepository = TodoRepository()
 
-    val jwt = JwtService(config)
-    val hasher = PasswordHasher()
-    val hub = RealtimeHub(json)
+    // HTTP client used for Supabase (Auth REST + JWKS + Realtime socket).
+    val supabaseClient = HttpClient(CIO) {
+        install(ClientContentNegotiation) { json(json) }
+        expectSuccess = false
+    }
 
-    val authService = AuthService(userRepository, hasher, jwt)
+    val authProvider: AuthProvider
+    val hub: Realtime
+    if (config.supabaseEnabled) {
+        val supabaseAuth = SupabaseAuthClient(config.supabaseUrl, config.supabasePublishableKey, json, supabaseClient)
+        val supabaseJwt = SupabaseJwtVerifier(config.supabaseUrl, supabaseClient, json)
+        authProvider = SupabaseAuthProvider(userRepository, supabaseAuth, supabaseJwt)
+        val supabaseRealtime = SupabaseRealtime(config.supabaseUrl, config.supabasePublishableKey, json, supabaseClient)
+        supabaseRealtime.start()
+        hub = SupabaseRealtimeProvider(json, supabaseRealtime)
+    } else {
+        val jwt = JwtService(config)
+        val hasher = PasswordHasher()
+        authProvider = LocalAuthProvider(userRepository, hasher, jwt)
+        hub = LocalRealtime(json)
+    }
+
+    val authService = AuthService(authProvider, userRepository)
     val listService = ListService(listRepository, hub)
     val todoService = TodoService(todoRepository, listRepository, listService, hub)
     val memberService = MemberService(listRepository, userRepository, hub)
@@ -103,7 +132,7 @@ fun Application.module(config: AppConfig) {
         provider(SessionCookie.AUTH_PROVIDER) {
             authenticate { context ->
                 val userId = context.call.request.cookies[SessionCookie.NAME]
-                    ?.let { jwt.verifyToken(it) }
+                    ?.let { authProvider.verifyToken(it) }
                     ?: throw unauthorized()
                 context.principal(UserPrincipal(userId))
             }
@@ -132,7 +161,7 @@ fun Application.module(config: AppConfig) {
     routing {
         authRoutes(authService, config, rateLimiter)
         authenticatedApiRoutes(listService, todoService, memberService)
-        realtimeRoutes(jwt, listRepository, hub, json)
+        realtimeRoutes(authProvider, listRepository, hub, json)
         staticContent(config)
     }
 }

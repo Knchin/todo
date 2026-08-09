@@ -4,7 +4,7 @@ import com.todo.server.database.TodoListRepository
 import com.todo.server.http.forbidden
 import com.todo.server.http.notFound
 import com.todo.server.http.validationError
-import com.todo.server.websocket.RealtimeHub
+import com.todo.server.websocket.Realtime
 import com.todo.shared.domain.Permissions
 import com.todo.shared.model.ListRole
 import com.todo.shared.model.CreateListRequest
@@ -16,7 +16,7 @@ import com.todo.shared.validation.Validation
 
 class ListService(
     private val lists: TodoListRepository,
-    private val hub: RealtimeHub,
+    private val hub: Realtime,
 ) {
     suspend fun myLists(userId: String): List<TodoListDto> = lists.listsForUser(userId)
 
