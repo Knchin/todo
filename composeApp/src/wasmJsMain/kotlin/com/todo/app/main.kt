@@ -3,8 +3,9 @@ package com.todo.app
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import com.todo.app.data.AppConfig
+import kotlin.js.ExperimentalWasmJsInterop
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalWasmJsInterop::class, ExperimentalComposeUiApi::class)
 fun main() {
     val config = appConfig()
     val isConfigured = config.supabaseUrl.isNotEmpty()

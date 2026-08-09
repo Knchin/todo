@@ -66,19 +66,16 @@ jobs:
         uses: actions/deploy-pages@v4
 
       # --- Cloudflare Pages ---
-      # wrangler-action@v4 runs on Node 24 (v3 used Node 20, now deprecated).
-      # The repo has no package.json, so the action's `npx --no-install
-      # wrangler --version` precheck fails; install wrangler explicitly and pin
-      # the version so the deploy step can invoke `wrangler pages deploy`.
-      - name: Install Wrangler
-        run: npm install -g wrangler@3
-
+      # There is no package.json/wrangler.toml in this repo, so the
+      # cloudflare/wrangler-action npx precheck fails. Install wrangler directly
+      # via the global npm registry and run `wrangler pages deploy` in a plain
+      # step. Using `npx --yes wrangler@3` avoids Node 20 (deprecated) since the
+      # ubuntu-latest runner ships Node 24.
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '3'
-          command: >-
-            pages deploy composeApp/build/dist/wasmJs/productionExecutable
-            --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
+        run: npx --yes wrangler@3 pages deploy \
+          composeApp/build/dist/wasmJs/productionExecutable \
+          --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} \
+          --commit-ish=main
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

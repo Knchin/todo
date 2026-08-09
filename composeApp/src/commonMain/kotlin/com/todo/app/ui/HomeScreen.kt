@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.todo.app.presentation.NotesViewModel
 import com.todo.shared.model.NoteSummary
 import com.todo.shared.model.NoteType
+import kotlinx.datetime.Clock
 
 internal val MaxWidth = 640.dp
 
@@ -149,7 +150,7 @@ private fun PublicNotesList(notes: List<NoteSummary>, onOpenNote: (String) -> Un
 }
 
 internal fun relativeTime(epochMillis: Long): String {
-    val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+    val now = Clock.System.now().toEpochMilliseconds()
     val diff = now - epochMillis
     return when {
         diff < 60_000 -> "just now"
