@@ -1,4 +1,4 @@
-name: Deploy Web to GitHub Pages
+name: Deploy Web to GitHub Pages & Cloudflare Pages
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -34,9 +34,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Web app
+      - name: Build Web app (PWA)
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
 
+      # --- GitHub Pages ---
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
@@ -48,3 +49,13 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # --- Cloudflare Pages ---
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy composeApp/build/dist/wasmJs/productionExecutable
+            --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
