@@ -50,16 +50,7 @@ fun HomeScreen(viewModel: NotesViewModel, onCreateClick: () -> Unit, onOpenNote:
     ) {
         Spacer(Modifier.height(16.dp))
         Text("Notes", style = MaterialTheme.typography.headlineLarge)
-        Text(
-            "Create and share notes instantly.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(Modifier.height(20.dp))
-        Button(onClick = onCreateClick, modifier = Modifier.width(220.dp)) {
-            Text("Create a note")
-        }
-        Spacer(Modifier.height(24.dp))
 
         when {
             viewModel.homeLoading -> LoadingBlock("Loading notes...")
