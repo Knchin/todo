@@ -1,4 +1,4 @@
-name: Deploy Web to GitHub Pages & Cloudflare Pages
+name: Deploy (release APK, iOS, Web to Cloudflare)
 
 on:
   push:
@@ -16,11 +16,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  android:
+    name: Android (release APK)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APK
+        run: ./gradlew :composeApp:assembleRelease --no-daemon
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: composeApp/build/outputs/apk/release/*.apk
+
+  ios:
+    name: iOS (release)
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build iOS release framework
+        run: ./gradlew :shared:linkReleaseFrameworkIosArm64 :composeApp:linkReleaseFrameworkIosArm64 --no-daemon
+
+  web:
+    name: Web (Wasm → Cloudflare Pages)
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,11 +97,14 @@ jobs:
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
 
       - name: Inject Supabase config into index.html
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           out=composeApp/build/dist/wasmJs/productionExecutable/index.html
           sed -i \
-            -e "s|@@SUPABASE_URL@@|${{ vars.SUPABASE_URL }}|g" \
-            -e "s|@@SUPABASE_ANON_KEY@@|${{ vars.SUPABASE_PUBLISHABLE_KEY }}|g" \
+            -e "s|@@SUPABASE_URL@@|${SUPABASE_URL}|g" \
+            -e "s|@@SUPABASE_ANON_KEY@@|${SUPABASE_ANON_KEY}|g" \
             "$out"
           # Fail loudly if substitution did not happen.
           grep -q "@@SUPABASE" "$out" \
@@ -67,15 +126,11 @@ jobs:
 
       # --- Cloudflare Pages ---
       # There is no package.json/wrangler.toml in this repo, so the
-      # cloudflare/wrangler-action npx precheck fails. Install wrangler directly
-      # via the global npm registry and run `wrangler pages deploy` in a plain
-      # step. Using `npx --yes wrangler@3` avoids Node 20 (deprecated) since the
-      # ubuntu-latest runner ships Node 24.
+      # cloudflare/wrangler-action npx precheck fails. Run wrangler directly via
+      # `npx --yes` (auto-installs, uses the runner's Node 24 — avoiding the
+      # deprecated Node 20).
       - name: Deploy to Cloudflare Pages
-        run: npx --yes wrangler@3 pages deploy \
-          composeApp/build/dist/wasmJs/productionExecutable \
-          --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }} \
-          --commit-ish=main
         env:
-          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@3 pages deploy composeApp/build/dist/wasmJs/productionExecutable --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}

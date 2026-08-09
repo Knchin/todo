@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  android-web:
-    name: Android + Web
+  android:
+    name: Android (APK)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,14 +25,29 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Android APK
+      - name: Build debug APK
         run: ./gradlew :composeApp:assembleDebug --no-daemon
+
+  web:
+    name: Web (Wasm)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build Web app
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
@@ -53,5 +72,3 @@ jobs:
 
       - name: Build iOS framework
         run: ./gradlew :shared:linkDebugFrameworkIosArm64 :composeApp:linkDebugFrameworkIosArm64 --no-daemon
-
-

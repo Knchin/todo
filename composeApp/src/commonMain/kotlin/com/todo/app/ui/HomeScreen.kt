@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.todo.app.presentation.NotesViewModel
 import com.todo.shared.model.NoteSummary
 import com.todo.shared.model.NoteType
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 internal val MaxWidth = 640.dp
 

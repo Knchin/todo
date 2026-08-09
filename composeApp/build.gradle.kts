@@ -83,8 +83,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildTypes {
+        // Sign the release APK with the debug keystore so `:composeApp:assembleRelease`
+        // works without a user-provided keystore. Production distributions should
+        // define a proper release keystore in signingConfigs instead.
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
