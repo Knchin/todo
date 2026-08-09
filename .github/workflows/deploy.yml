@@ -136,7 +136,7 @@ jobs:
         run: |
           if ! npx --yes wrangler@3 pages project list | grep -Eq '(^|[[:space:]])todonotes($|[[:space:]])'; then
             echo "Pages project 'todonotes' not found; creating it..."
-            npx --yes wrangler@3 pages project create todonotes
+            npx --yes wrangler@3 pages project create todonotes --production-branch=main
           else
             echo "Pages project 'todonotes' already exists."
           fi
