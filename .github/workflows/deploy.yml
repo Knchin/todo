@@ -35,7 +35,22 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build Web app (PWA)
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
+
+      - name: Inject Supabase config into index.html
+        run: |
+          out=composeApp/build/dist/wasmJs/productionExecutable/index.html
+          sed -i \
+            -e "s|@@SUPABASE_URL@@|${{ vars.SUPABASE_URL }}|g" \
+            -e "s|@@SUPABASE_ANON_KEY@@|${{ vars.SUPABASE_PUBLISHABLE_KEY }}|g" \
+            "$out"
+          # Fail loudly if substitution did not happen.
+          grep -q "@@SUPABASE" "$out" \
+            && { echo "::error::Config placeholders remain in $out" ; exit 1; } \
+            || true
 
       # --- GitHub Pages ---
       - name: Configure Pages
@@ -51,14 +66,15 @@ jobs:
         uses: actions/deploy-pages@v4
 
       # --- Cloudflare Pages ---
-      # The repo has no package.json, so wrangler-action's `npx --no-install
-      # wrangler --version` check fails. Install wrangler explicitly and pin a
-      # version to avoid the detection failure and Node 20 deprecation.
+      # wrangler-action@v4 runs on Node 24 (v3 used Node 20, now deprecated).
+      # The repo has no package.json, so the action's `npx --no-install
+      # wrangler --version` precheck fails; install wrangler explicitly and pin
+      # the version so the deploy step can invoke `wrangler pages deploy`.
       - name: Install Wrangler
         run: npm install -g wrangler@3
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
