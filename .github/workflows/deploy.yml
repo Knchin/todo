@@ -51,11 +51,18 @@ jobs:
         uses: actions/deploy-pages@v4
 
       # --- Cloudflare Pages ---
+      # The repo has no package.json, so wrangler-action's `npx --no-install
+      # wrangler --version` check fails. Install wrangler explicitly and pin a
+      # version to avoid the detection failure and Node 20 deprecation.
+      - name: Install Wrangler
+        run: npm install -g wrangler@3
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '3'
           command: >-
             pages deploy composeApp/build/dist/wasmJs/productionExecutable
             --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
