@@ -46,7 +46,9 @@ fun CreateNoteScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(Modifier.fillMaxWidth().width(MaxWidth), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("← Back") }
+            TextButton(onClick = onBack) {
+                Text("← Back", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            }
         }
         Text("Create a note", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
