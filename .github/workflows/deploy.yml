@@ -129,6 +129,18 @@ jobs:
       # cloudflare/wrangler-action npx precheck fails. Run wrangler directly via
       # `npx --yes` (auto-installs, uses the runner's Node 24 — avoiding the
       # deprecated Node 20).
+      - name: Ensure Cloudflare Pages project exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if ! npx --yes wrangler@3 pages project list | grep -Eq '(^|[[:space:]])todonotes($|[[:space:]])'; then
+            echo "Pages project 'todonotes' not found; creating it..."
+            npx --yes wrangler@3 pages project create todonotes
+          else
+            echo "Pages project 'todonotes' already exists."
+          fi
+
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
