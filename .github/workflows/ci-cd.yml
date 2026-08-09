@@ -158,7 +158,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Output GitHub Pages URL
-        run: echo "## 🌐 Deployed to GitHub Pages: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Deployed to GitHub Pages: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
 
       # --- Cloudflare Pages ---
       - name: Ensure Cloudflare Pages project exists
@@ -180,4 +180,4 @@ jobs:
         run: npx --yes wrangler@3 pages deploy web-dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
 
       - name: Output Cloudflare Pages URL
-        run: echo "## 🚀 Deployed to Cloudflare Pages: https://todonotes.pages.dev" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Deployed to Cloudflare Pages: https://todonotes.pages.dev" >> $GITHUB_STEP_SUMMARY
